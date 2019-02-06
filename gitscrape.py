@@ -3,6 +3,8 @@ import sys
 import requests
 import re
 import json
+from datetime import datetime
+from dateutil import tz
 
 def usage():
   print("usage: %s 'user/repo'" % sys.argv[0])
@@ -22,7 +24,29 @@ def main():
 
   content = response.content.decode('UTF-8')
   data = json.loads(content)
-  print(data)
+
+  from_zone = tz.tzutc()
+  to_zone = tz.tzlocal()
+
+  for c in data:
+    date_str = c["commit"]["committer"]["date"]
+
+    utc = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
+    utc = utc.replace(tzinfo=from_zone)
+
+    local_tz = utc.astimezone(to_zone)
+
+    c_time = local_tz.strftime('%Y-%m-%d %H:%M:%S %Z')
+
+    print()
+    print("Created %s" % c_time)
+    print("Commit SHA: %s" % c["sha"])
+    print("Commit URL: %s" % c["html_url"])
+    print("Committer: %s" % c["commit"]["committer"]["name"])
+    print()
+    print(c["commit"]["message"])
+    print()
+    print('--------------------------------------------------')
 
   return 0
 
